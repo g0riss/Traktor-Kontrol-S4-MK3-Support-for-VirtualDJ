@@ -1,0 +1,31 @@
+name: Build helper + bridge (jog ring LEDs disabled)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply patch
+        shell: bash
+        run: git apply --verbose disable-jog-ring-leds.patch
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build (Release x64)
+        shell: pwsh
+        run: msbuild "Source/Traktor Kontrol S4 MK3.slnx" /m /t:Build /p:Configuration=Release /p:Platform=x64
+
+      - name: List output
+        shell: pwsh
+        run: Get-ChildItem Source/artifacts/x64/Release | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: S4MK3-no-ring-leds
+          path: |
+            Source/artifacts/x64/Release/*.dll
+            Source/artifacts/x64/Release/*.exe
