@@ -1,0 +1,32 @@
+diff --git a/Source/include/ni_service_session.h b/Source/include/ni_service_session.h
+index 2273a5d..5b974bf 100644
+--- a/Source/include/ni_service_session.h
++++ b/Source/include/ni_service_session.h
+@@ -380,6 +380,11 @@ inline bool disconnected(DWORD error)
+ // EN: Motor targets, write guards and an independent watchdog. Validate lifecycle/device identity and stop safely after the main helper exits.
+ 
+ #include "bridge_ipc.h"
++// Set to 1 to stop the helper from writing the NI jog-ring state (mode/colour/angle),
++// leaving the jog ring LEDs to VirtualDJ's own mapping. Motor and haptics are unaffected.
++#ifndef S4_DISABLE_JOG_RING_LEDS
++#define S4_DISABLE_JOG_RING_LEDS 1
++#endif
+ #include "jog_ring.h"
+ #include <array>
+ #include "haptic_cue.h"
+@@ -1466,6 +1471,7 @@ class BridgeSession
+                         return true;
+                     if (!liveLease(ringReport) || !guard(ringReport) || !motorWatch.alive())
+                         return false;
++#if !S4_DISABLE_JOG_RING_LEDS
+                     for (unsigned side = 0; side < 2; ++side)
+                     {
+                         auto readCache = [&](unsigned i, ring18::Cache &cache) {
+@@ -1477,6 +1483,7 @@ class BridgeSession
+                         if (!ring18::update(a, side, readCache, writeCache))
+                             return ringReport.reject("ring_cache_update_failed", 0, 0, GetLastError(), side);
+                     }
++#endif
+                     ++ringFrames;
+                     return true;
+                 },
