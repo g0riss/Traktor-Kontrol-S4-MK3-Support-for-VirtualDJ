@@ -1,4 +1,4 @@
-name: Build helper + bridge (jog ring LEDs disabled)
+name: Build helper + bridge (no near-end ring blink)
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: S4MK3-no-ring-leds
+          name: S4MK3-no-ring-blink
           path: |
             Source/artifacts/x64/Release/*.dll
             Source/artifacts/x64/Release/*.exe
