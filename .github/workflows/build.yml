@@ -9,9 +9,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Apply patch
-        shell: bash
-        run: git apply --verbose disable-jog-ring-leds.patch
 
       - uses: microsoft/setup-msbuild@v2
 
