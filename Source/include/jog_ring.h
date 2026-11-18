@@ -176,6 +176,11 @@ bool configuredDeckColor(unsigned deck, int order, Numeric numeric, Text text, u
 
 #include <cstddef>
 
+// 1 = original behaviour (ring blinks when the track is near its end); 0 = never blink.
+#ifndef S4_JOG_RING_NEAR_END_BLINK
+#define S4_JOG_RING_NEAR_END_BLINK 0
+#endif
+
 namespace ring18
 {
 struct Cache
@@ -208,10 +213,15 @@ inline Cache target(const phase18::Frame &f, unsigned side, const Cache &current
     }
     out.angle = static_cast<WORD>(angle);
     out.color = static_cast<BYTE>(niColor(f.rgb[side]));
+#if S4_JOG_RING_NEAR_END_BLINK
     DWORD flags = f.facts[side];
     bool touched = (flags & phase18::Touched) || (f.padding & (1u << (side + 2)));
     out.mode =
         !touched && !(flags & phase18::LineIn) && (flags & phase18::Audible) && (flags & phase18::NearEnd) ? 3u : 2u;
+#else
+    // Mode 3 is the blinking "near end of track" ring; always use the steady mode 2 instead.
+    out.mode = 2u;
+#endif
     return out;
 }
 
