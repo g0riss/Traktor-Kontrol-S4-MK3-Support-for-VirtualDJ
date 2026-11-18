@@ -380,12 +380,6 @@ inline bool disconnected(DWORD error)
 // EN: Motor targets, write guards and an independent watchdog. Validate lifecycle/device identity and stop safely after the main helper exits.
 
 #include "bridge_ipc.h"
-// ZH/EN: 1 = the helper never drives the jog ring LEDs; it only keeps NIHardwareService's own ring
-// renderer idle (cache mode 0) so VirtualDJ's mapping (LED_JOGRING_*) is the only writer.
-// Motor, TT mode and haptics are unchanged. Set to 0 for the original helper-driven rings.
-#ifndef S4_JOG_RING_FROM_MAPPING
-#define S4_JOG_RING_FROM_MAPPING 1
-#endif
 #include "jog_ring.h"
 #include <array>
 #include "haptic_cue.h"
@@ -1449,9 +1443,6 @@ class BridgeSession
                     if (!announced)
                     {
                         note("ring_lane_tid", static_cast<LONG>(GetCurrentThreadId()));
-#if S4_JOG_RING_FROM_MAPPING
-                        note("jog_ring_mapping_only");
-#endif
                         announced = true;
                     }
                     ringReport.context("ring_lane");
@@ -1475,23 +1466,6 @@ class BridgeSession
                         return true;
                     if (!liveLease(ringReport) || !guard(ringReport) || !motorWatch.alive())
                         return false;
-#if S4_JOG_RING_FROM_MAPPING
-                    // Keep NIHardwareService's own jog-ring renderer idle (mode 0) so it cannot compete with the
-                    // LED_JOGRING_* output written by VirtualDJ's mapping. Colour/angle are never touched, and a
-                    // write happens only if something else switched the ring mode back on.
-                    for (unsigned side = 0; side < 2; ++side)
-                    {
-                        ring18::Cache cache{};
-                        if (!nicompat::cacheRead(ni.h, jog, layout, side, cache) || !ring18::validCache(cache))
-                            return ringReport.reject("ring_cache_update_failed", 0, 0, GetLastError(), side);
-                        if (cache.mode != 0)
-                        {
-                            cache.mode = 0;
-                            if (!nicompat::cacheWrite(ni.h, jog, layout, side, cache))
-                                return ringReport.reject("ring_cache_update_failed", 0, 0, GetLastError(), side);
-                        }
-                    }
-#else
                     for (unsigned side = 0; side < 2; ++side)
                     {
                         auto readCache = [&](unsigned i, ring18::Cache &cache) {
@@ -1503,7 +1477,6 @@ class BridgeSession
                         if (!ring18::update(a, side, readCache, writeCache))
                             return ringReport.reject("ring_cache_update_failed", 0, 0, GetLastError(), side);
                     }
-#endif
                     ++ringFrames;
                     return true;
                 },
